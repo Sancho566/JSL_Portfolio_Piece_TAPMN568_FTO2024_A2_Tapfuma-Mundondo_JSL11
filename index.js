@@ -1,3 +1,4 @@
+import { initialData } from './initialData.js';
 // Function to initialize data in local storage if it's not already present
 function initializeData() {
   if (!localStorage.getItem('tasks')) {
@@ -36,24 +37,9 @@ const elements = {
 let activeBoard = '';
 let selectedTaskId = '';
 
-// Fetches tasks from localStorage or an initial data source
+//fetches tasks from localStorage or an initial data source
 function getTasks() {
   return JSON.parse(localStorage.getItem('tasks')) || [];
-}
-
-// Fetches unique board names from tasks
-function fetchAndDisplayBoardsAndTasks() {
-  const tasks = getTasks();
-  const boards = [...new Set(tasks.map(task => task.board).filter(Boolean))];
-  displayBoards(boards);
-  
-  if (boards.length > 0) {
-    const localStorageBoard = JSON.parse(localStorage.getItem('activeBoard'));
-    activeBoard = localStorageBoard || boards[0]; // Set activeBoard to the first board by default
-    elements.headerBoardName.textContent = activeBoard;
-    styleActiveBoard(activeBoard);
-    refreshTaskUI();
-  }
 }
 
 // Display boards in the UI
@@ -77,20 +63,53 @@ function displayBoards(boards) {
   });
 }
 
-// Adds a new task to the UI
-function addTaskToUI(task) {
-  const column = document.querySelector(`.column-div[data-status="${task.status}"]`);
-  if (!column) return;
+document.addEventListener("DOMContentLoaded", function() {
+  const launchCareerBtn = document.getElementById("launch-career-btn");
+  const roadmapBtn = document.getElementById("roadmap-btn");
 
-  let tasksContainer = column.querySelector('.tasks-container');
-  if (!tasksContainer) {
-    tasksContainer = document.createElement('div');
-    tasksContainer.className = 'tasks-container';
-    column.appendChild(tasksContainer);
+  const tasksContainer = {
+      todo: document.querySelector('.column-div[data-status="todo"] .tasks-container'),
+      doing: document.querySelector('.column-div[data-status="doing"] .tasks-container'),
+      done: document.querySelector('.column-div[data-status="done"] .tasks-container')
+  };
+
+  launchCareerBtn.addEventListener("click", function() {
+      filterTasks('Launch Career');
+  });
+
+  roadmapBtn.addEventListener("click", function() {
+      filterTasks('Roadmap');
+  });
+
+  function filterTasks(board) {
+      // Clear the existing tasks
+      for (let status in tasksContainer) {
+          tasksContainer[status].innerHTML = '';
+      }
+
+      // Filter and display tasks based on the selected board
+      initialData.filter(task => task.board === board).forEach(task => {
+          const taskElement = document.createElement("div");
+          taskElement.className = "task";
+          taskElement.innerHTML = `
+              <h4>${task.title}</h4>
+              <p>${task.description}</p>
+          `;
+          tasksContainer[task.status].appendChild(taskElement);
+      });
   }
 
+  // Initially display all tasks
+  filterTasks('Launch Career');
+});
+
+// Adds a new task to the UI
+function addTaskToUI(task) {
+  const column = document.querySelector(`.column-div[data-status="${task.status}"] .tasks-container`);
+  if (!column) return;
+
   const taskElement = createTaskElement(task);
-  tasksContainer.appendChild(taskElement);
+  column.appendChild(taskElement);
 
   taskElement.addEventListener('click', () => {
     openEditTaskModal(task);
@@ -128,8 +147,6 @@ function setupEventListeners() {
 
   elements.saveTaskChangesBtn.addEventListener('click', saveTaskChanges);
   elements.deleteTaskBtn.addEventListener('click', deleteTask);
-
-  elements.addBoardBtn.addEventListener('click', addNewBoard);
 }
 
 // Toggles the modal display
@@ -160,7 +177,11 @@ function addTask(event) {
 
 // Refreshes the UI with tasks of the active board
 function refreshTaskUI() {
-  // Your implementation to refresh tasks in the UI
+  const columns = document.querySelectorAll('.column-div .tasks-container');
+  columns.forEach(column => column.innerHTML = '');
+
+  const tasks = getTasks().filter(task => task.board === activeBoard);
+  tasks.forEach(task => addTaskToUI(task));
 }
 
 // Toggles the sidebar display
@@ -249,7 +270,6 @@ document.addEventListener('DOMContentLoaded', function() {
   applySavedThemes();
   setupEventListeners();
   initializeSidebar();
-  fetchAndDisplayBoardsAndTasks();
 });
 
 // Sample implementation of createNewTask function
@@ -260,43 +280,59 @@ function createNewTask(task) {
   return task;
 }
 
-// Sample implementation of createTaskElement function
+// Creates a task HTML element
 function createTaskElement(task) {
   const taskElement = document.createElement('div');
-  taskElement.classList.add('task-title');
-
-  const taskTitle = document.createElement('h4');
-  taskTitle.textContent = task.title;
-
-  const taskDescription = document.createElement('p');
-  taskDescription.textContent = task.description;
-  taskDescription.classList.add('task-desc');
-  taskDescription.style.display = 'none';
-
-  taskTitle.addEventListener('click', () => {
-    taskDescription.style.display = taskDescription.style.display === 'none' ? 'block' : 'none';
-  });
-
-  taskElement.appendChild(taskTitle);
-  taskElement.appendChild(taskDescription);
-
+  taskElement.className = 'task-item';
+  taskElement.dataset.taskId = task.id;
+  taskElement.innerHTML = `
+    <h3>${task.title}</h3>
+    <p>${task.description}</p>
+    <p>${task.status}</p>
+  `;
   return taskElement;
 }
 
-// Generates a unique ID for a new task
+// Generates a unique task ID
 function generateTaskId() {
-  return 'task-' + Math.random().toString(36).substr(2, 9);
+  return 'task-' + Date.now();
 }
 
-document.addEventListener('DOMContentLoaded', function() {
-  init(); // init is called after the DOM is fully loaded
-});
-
-function init() {
-  setupEventListeners();
-  const showSidebar = localStorage.getItem('showSideBar') === 'true';
-  toggleSidebar(showSidebar);
-  const isLightTheme = localStorage.getItem('light-theme') === 'enabled';
-  document.body.classList.toggle('light-theme', isLightTheme);
-  fetchAndDisplayBoardsAndTasks(); // Initial display of boards and tasks
+// Opens the edit task modal
+function openEditTaskModal(task) {
+  selectedTaskId = task.id;
+  elements.editTaskTitleInput.value = task.title;
+  elements.editTaskDescInput.value = task.description;
+  elements.editSelectStatus.value = task.status;
+  toggleModal(true, elements.editTaskModal);
+  elements.filterDiv.style.display = 'block';
 }
+
+// Saves task changes
+function saveTaskChanges() {
+  const tasks = getTasks();
+  const taskIndex = tasks.findIndex(task => task.id === selectedTaskId);
+  if (taskIndex > -1) {
+    tasks[taskIndex].title = elements.editTaskTitleInput.value.trim();
+    tasks[taskIndex].description = elements.editTaskDescInput.value.trim();
+    tasks[taskIndex].status = elements.editSelectStatus.value.trim();
+    localStorage.setItem('tasks', JSON.stringify(tasks));
+    refreshTaskUI();
+    toggleModal(false, elements.editTaskModal);
+    elements.filterDiv.style.display = 'none';
+  }
+}
+
+// Styles the active board
+function styleActiveBoard(board) {
+  const boardItems = document.querySelectorAll('.board-item button');
+  boardItems.forEach(button => {
+    if (button.textContent === board) {
+      button.classList.add('active');
+    } else {
+      button.classList.remove('active');
+    }
+  });
+}
+
+

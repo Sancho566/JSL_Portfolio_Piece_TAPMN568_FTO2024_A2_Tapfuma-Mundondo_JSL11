@@ -50,7 +50,7 @@ body {
   /* border: 5px solid rgb(0, 0, 0); */
   border-right: 0.1px solid #979797;
   /* flex: 0.8; */
-  display: none;
+  display: block;
   flex-direction: column;
   gap: 50px;
   /* padding-left: 50px; */
@@ -114,6 +114,30 @@ body {
   overflow: hidden;
   font-weight: 500;
   padding: 28px 12px 28px 50px;
+}
+
+#launch-career-btn{
+  background-color: #21202c;
+ font-size: 15px;
+ width: 135px;
+ height: 40px;
+ border: none;
+ margin: 0;
+ padding: 0;
+ cursor: pointer;
+ border-radius: 0 15px 15px 0;
+}
+
+#roadmap-btn{
+  background-color: #21202c;
+  font-size: 15px;
+ width: 135px;
+ height: 40px;
+ border: none;
+ margin: 0;
+ padding: 0;
+ cursor: pointer;
+ border-radius: 0 15px 15px 0;
 }
 
 .active {
